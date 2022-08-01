@@ -20,20 +20,30 @@ def test_gbm_euro_closed_form():
     assert rel_diff < 1e-5
 
 # Use closed form to verify binomial
-def test_gbm_euro_binomial():
-    test_closed_form = euro_put_closed_form(60, 65, 0.08, 0.01, 0.2, 0.25)
-    test_binomial = euro_put_binomial(60, 65, 0.08, 0.01, 0.2, 0.25, 1000)
+@pytest.mark.parametrize(('spot_price', 'strike', 'risk_free_rate', 'yield_rate', 'sigma', 'time_to_expiration'), (
+    (60, 65, 0.08, 0.01, 0.2, 0.25),
+    (100, 120, 0.08, 0.01, 0.3, 1),
+    (100, 80, 0.08, 0.02, 0.33, 2),
+))
+def test_gbm_euro_binomial(spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration):
+    test_closed_form = euro_put_closed_form(spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration)
+    test_binomial = euro_put_binomial(spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration, 5000)
     rel_diff = abs(test_binomial-test_closed_form)/test_closed_form
     assert rel_diff < 1e-4
 
 # Use closed form to verify Monte Carlo
-def test_gbm_euro_monte_carlo():
-    test_closed_form = euro_put_closed_form(60, 65, 0.08, 0.01, 0.2, 0.25)
-    pseudoRandomDraws = [None] * 100000
+@pytest.mark.parametrize(('spot_price', 'strike', 'risk_free_rate', 'yield_rate', 'sigma', 'time_to_expiration'), (
+    (60, 65, 0.08, 0.01, 0.2, 0.25),
+    (100, 120, 0.08, 0.01, 0.3, 1),
+    (100, 80, 0.08, 0.02, 0.33, 2),
+))
+def test_gbm_euro_monte_carlo(spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration):
+    test_closed_form = euro_put_closed_form(spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration)
+    pseudoRandomDraws = [None] * 1000000
     seed(12345)
     for draw_idx in range(len(pseudoRandomDraws)):
         pseudoRandomDraws[draw_idx] = gauss(0, 1)
-    test_monte_carlo = euro_put_monte_carlo(60, 65, 0.08, 0.01, 0.2, 0.25, pseudoRandomDraws)
+    test_monte_carlo = euro_put_monte_carlo(spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration, pseudoRandomDraws)
     rel_diff = abs(test_monte_carlo-test_closed_form)/test_closed_form
     assert rel_diff < 1e-3
 
