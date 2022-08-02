@@ -1,2 +1,2 @@
-__all__ = ["euro"]
+__all__ = ["euro", "amer"]
 

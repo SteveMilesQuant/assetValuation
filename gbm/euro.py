@@ -1,6 +1,6 @@
 from math import log, sqrt, exp
 from scipy.stats import norm
-import pytest
+import numpy
 
 # Black-Scholes-Merton formula for a European put
 def black_scholes_merton(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration):
@@ -32,8 +32,8 @@ def binomial(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma,
 
     # Generate vector of final underlying values and final option prices
     final_underlying = spot_price * (d ** n_time_steps)
-    # underlying_values = [None] * (n_time_steps+1)
-    option_prices = [None] * (n_time_steps+1)
+    # underlying_values = numpy.zeros(n_time_steps+1)
+    option_prices = numpy.zeros(n_time_steps+1)
     for state_idx in range(n_time_steps+1):
         # underlying_values[state_idx] = final_underlying
         if is_put:
@@ -53,9 +53,9 @@ def binomial(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma,
 
 
 # Monte Carlo pricing for a European put
-# pseudoRandomDraws should be size [n_draws]
-def monte_carlo(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration, pseudoRandomDraws):
-    n_draws = len(pseudoRandomDraws)
+# random_draws should be ndarray of size [n_draws]
+def monte_carlo(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration, random_draws):
+    n_draws = random_draws.shape[0]
     b = risk_free_rate - yield_rate
     drift_term = (b-sigma * sigma / 2)*time_to_expiration
     sig_sqrt_t = sigma * sqrt(time_to_expiration)
@@ -63,10 +63,10 @@ def monte_carlo(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sig
     is_put = (put_or_call.lower() == "put")
 
     # Calculate final underlying values and option payouts
-    underlying_values = [None] * n_draws
-    option_prices = [None] * n_draws
+    underlying_values = numpy.zeros(n_draws)
+    option_prices = numpy.zeros(n_draws)
     for draw_idx in range(n_draws):
-        underlying_values[draw_idx] = spot_adj * exp(sig_sqrt_t * pseudoRandomDraws[draw_idx])
+        underlying_values[draw_idx] = spot_adj * exp(sig_sqrt_t * random_draws[draw_idx])
         if is_put:
             option_prices[draw_idx] = max(strike-underlying_values[draw_idx], 0)
         else:
