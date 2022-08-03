@@ -1,7 +1,7 @@
 import pytest
 import gbm.euro
 from random import seed, gauss
-from math import exp, floor
+from math import exp
 import numpy
 
 # Verify closed form against book
@@ -28,11 +28,11 @@ def test_gbm_euro_closed_form(spot_price, strike, risk_free_rate, yield_rate, si
     ('call', 100, 80, 0.08, 0.02, 0.33, 2),
 ))
 def test_gbm_euro_binomial(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration):
-    n_time_steps = 5000
-    
+    n_time_steps = 500
+
     test_closed_form = gbm.euro.black_scholes_merton(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration)
     test_binomial = gbm.euro.binomial(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration, n_time_steps)
-    assert abs(test_binomial-test_closed_form)/test_closed_form < 1e-4
+    assert abs(test_binomial-test_closed_form)/test_closed_form < 1e-3
 
 # Use closed form to verify Monte Carlo
 @pytest.mark.parametrize(('put_or_call', 'spot_price', 'strike', 'risk_free_rate', 'yield_rate', 'sigma', 'time_to_expiration'), (
@@ -50,10 +50,28 @@ def test_gbm_euro_monte_carlo(put_or_call, spot_price, strike, risk_free_rate, y
     pseudoRandomDraws = numpy.zeros(n_draws)
     seed(12345)
     mirror_idx = n_draws
-    for draw_idx in range(floor(n_draws/2)):
+    for draw_idx in range(int(n_draws/2)):
         mirror_idx -= 1
         pseudoRandomDraws[draw_idx] = gauss(0, 1)
         pseudoRandomDraws[mirror_idx] = -pseudoRandomDraws[draw_idx]
     test_monte_carlo = gbm.euro.monte_carlo(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration, pseudoRandomDraws)
     assert abs(test_monte_carlo-test_closed_form)/test_closed_form < 2e-3
+
+
+# Use closed form to verify PDE
+@pytest.mark.parametrize(('put_or_call', 'spot_price', 'strike', 'risk_free_rate', 'yield_rate', 'sigma', 'time_to_expiration'), (
+    ('put', 60, 65, 0.08, 0.01, 0.2, 0.25),
+    ('put', 100, 120, 0.08, 0.01, 0.3, 1),
+    ('put', 100, 80, 0.08, 0.02, 0.33, 2),
+    ('call', 60, 65, 0.08, 0.01, 0.2, 0.25),
+    ('call', 100, 120, 0.08, 0.01, 0.3, 1),
+    ('call', 100, 80, 0.08, 0.02, 0.33, 2),
+))
+def test_gbm_euro_pde(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration):
+    n_time_steps = 500
+    n_price_steps = 501
+
+    test_closed_form = gbm.euro.black_scholes_merton(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration)
+    test_pde = gbm.euro.pde(put_or_call, spot_price, strike, risk_free_rate, yield_rate, sigma, time_to_expiration, n_price_steps, n_time_steps)
+    assert abs(test_pde-test_closed_form)/test_closed_form < 1e-3
 
