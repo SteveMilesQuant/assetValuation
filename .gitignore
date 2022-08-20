@@ -1,4 +1,4 @@
 command_lines.txt
-requirements.txt
 /virt
 */__pycache__
+__pycache__

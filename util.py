@@ -1,5 +1,6 @@
 import numpy
 
+
 # Thomas's algorithm for solving M * x = d, where M is a tridiagonal matrix
 # a is indexed 1 to n-1 (ignoring index zero)
 # b is indexed 0 to n-1
@@ -24,22 +25,3 @@ def tridiag_solve(a, b, c, d):
 
     return x
 
-
-# Using Thomas's algorithm, get the full inverse of a tridiagonal matrix
-# Not really necessary or even advisable, but provides another easy test of tridiag_solve
-# a is indexed 1 to n-1 (ignoring index zero)
-# b is indexed 0 to n-1
-# c is indexed 1 to n-2 (ignoring index n-1)
-def tridiag_inv(a, b, c):
-    n = len(b)
-    d = numpy.zeros(n)
-    M = numpy.zeros((n,n))
-
-    for j in range(n):
-        d[j] = 1
-        x = tridiag_solve(a, b, c, d)
-        for i in range(n):
-            M[i][j] = x[i]
-        d[j] = 0
-
-    return M
