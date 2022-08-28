@@ -2,7 +2,7 @@ import numpy
 from math import sqrt, exp
 from model import Model, ModelType
 from option import Option
-from option_enum import OptionType, PutOrCall
+from option_enum import OptionType, PutOrCall, BarrierTypeUpOrDown, BarrierTypeInOrOut
 from util import tridiag_solve
 
 
@@ -24,6 +24,9 @@ def pde(model: Model, option: Option):
     spot_price = option.spot_value
     time_to_expiration = option.time_to_expiration
     strike = option.strike
+    barrier = option.barrier
+    # TODO: support cash rebate
+    up_or_down, in_or_out = option.barrier_type
     assert spot_price > 0, f'Error: in pde, spot_price={spot_price} should be positive.'
     assert strike > 0, f'Error: in pde, strike={strike} should be positive.'
 
@@ -60,6 +63,7 @@ def pde(model: Model, option: Option):
         f[0] = max(S[0] - strike, 0)
         f[n_price_steps-1] = max(S[n_price_steps-1] - strike, 0)
 
+
     # Set up body of calculations (i.e. body of matrices) and maturity exercise value
     S_coeff = exp(dx)
     for i in range(1, n_price_steps-1):
@@ -75,18 +79,51 @@ def pde(model: Model, option: Option):
         else:
             f[i] = max(S[i] - strike, 0)
 
+    if option_type == OptionType.BARRIER:
+        if in_or_out == BarrierTypeInOrOut.IN:
+            euro_price = f.copy()
+        for i in range(n_price_steps):
+            if up_or_down == BarrierTypeUpOrDown.UP and S[i] >= barrier:
+                barrier_hit = True
+            elif up_or_down == BarrierTypeUpOrDown.DOWN and S[i] <= barrier:
+                barrier_hit = True
+            else:
+                barrier_hit = False
+            if barrier_hit:
+                f[i] = 0
+
+
     # Step through time, solving for f[t] using f[t+1]
-    # Update f[t] for early execise
     for time_idx in range(n_time_steps):
         new_rhs = numpy.matmul(rhs, f)
         f = tridiag_solve(lhs_a, lhs_b, lhs_c, new_rhs)
         if option_type == OptionType.AMERICAN:
+            # Update f[t] for early exercise
             for i in range(1, n_price_steps-1):
                 if put_or_call == PutOrCall.PUT:
                     f[i] = max(strike - S[i], f[i])
                 else:
                     f[i] = max(S[i] - strike, f[i])
+        elif option_type == OptionType.BARRIER:
+            # If "in", then also price the European
+            if in_or_out == BarrierTypeInOrOut.IN:
+                new_rhs = numpy.matmul(rhs, euro_price)
+                euro_price = tridiag_solve(lhs_a, lhs_b, lhs_c, new_rhs)
+            # Update f[t] if we hit the "out" barrier
+            for i in range(n_price_steps):
+                if up_or_down == BarrierTypeUpOrDown.UP and S[i] >= barrier:
+                    barrier_hit = True
+                elif up_or_down == BarrierTypeUpOrDown.DOWN and S[i] <= barrier:
+                    barrier_hit = True
+                else:
+                    barrier_hit = False
+                if barrier_hit:
+                    f[i] = 0
 
-    return f[half_n_price_steps]
+    if option_type == OptionType.BARRIER and in_or_out == BarrierTypeInOrOut.IN:
+        # "in" plus "out" is just European
+        return euro_price[half_n_price_steps] - f[half_n_price_steps]
+    else:
+        return f[half_n_price_steps]
 
 

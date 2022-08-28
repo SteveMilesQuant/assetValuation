@@ -11,3 +11,13 @@ class PutOrCall(Enum):
     PUT = 0
     CALL = 1
 
+
+class BarrierTypeInOrOut(Enum):
+    IN = 0
+    OUT = 1
+
+
+class BarrierTypeUpOrDown(Enum):
+    UP = 0
+    DOWN = 1
+

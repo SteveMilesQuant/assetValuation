@@ -1,7 +1,7 @@
 from option_enum import OptionType
 from model import ModelType, NumericalMethod
 from option import Option
-from gbm import euro_black_scholes_merton, gbm_binomial_tree
+from gbm import euro_black_scholes_merton, gbm_binomial_tree, barrier_reiner_rubinstein
 from pde import pde
 from monte_carlo import monte_carlo
 
@@ -18,7 +18,12 @@ def add_all_evaluation_methods(option: Option):
         (ModelType.GBM, OptionType.AMERICAN, NumericalMethod.CLOSED_FORM): None,
         (ModelType.GBM, OptionType.AMERICAN, NumericalMethod.TREE): gbm_binomial_tree,
         (ModelType.GBM, OptionType.AMERICAN, NumericalMethod.PDE): pde,
-        (ModelType.GBM, OptionType.AMERICAN, NumericalMethod.MONTE_CARLO): monte_carlo
+        (ModelType.GBM, OptionType.AMERICAN, NumericalMethod.MONTE_CARLO): monte_carlo,
+        
+        (ModelType.GBM, OptionType.BARRIER, NumericalMethod.CLOSED_FORM): barrier_reiner_rubinstein,
+        (ModelType.GBM, OptionType.BARRIER, NumericalMethod.TREE): None,
+        (ModelType.GBM, OptionType.BARRIER, NumericalMethod.PDE): pde,
+        (ModelType.GBM, OptionType.BARRIER, NumericalMethod.MONTE_CARLO): monte_carlo
     }
     for eval_method_key, eval_method in evaluation_methods.items():
         option.add_evaluation_method(eval_method_key, eval_method)
